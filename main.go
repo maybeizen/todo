@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// task types
 type Task struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -19,70 +20,133 @@ var taskData []Task
 
 func main() {
 	fileByte, err := os.ReadFile("./data/tasks.json")
-
 	if err != nil {
-		fmt.Println("Error opening file:", err)
+		fmt.Println("❌ Error opening file:", err)
 		return
 	}
 
+	// parse json file
 	err = json.Unmarshal(fileByte, &taskData)
-
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
+		fmt.Println("❌ Error parsing JSON:", err)
 		return
 	}
 
+	// scanner to read user input
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Choose an option:\n1. Add a task\n2. List tasks\n3. Complete a task\n4. Delete a task\n5. Exit\n>> ")
 
-	scanner.Scan()
-	input := strings.TrimSpace(scanner.Text())
+	for {
+		fmt.Println("\n====== TODO CLI ======")
+		fmt.Println("1) Add a task")
+		fmt.Println("2) List tasks")
+		fmt.Println("3) Complete a task")
+		fmt.Println("4) Delete a task")
+		fmt.Println("5) Exit")
+		fmt.Print(">> ")
 
-	fmt.Println(input)
+		scanner.Scan()
+		// trim whitespace from inputs
+		input := strings.TrimSpace(scanner.Text())
 
-	switch input {
+		switch input {
 
-	case "1":
-		{
-			fmt.Println("Enter a task name: ")
+		case "1":
+			fmt.Print("\nEnter a task name: ")
 			scanner.Scan()
 			taskName := strings.TrimSpace(scanner.Text())
-			taskData = append(taskData, Task{ID: len(taskData) + 1, Name: taskName, Completed: false})
-			fmt.Println("Task added successfully!")
-			break
-		}
-	case "2":
-		{
+
+			newTask := Task{
+				ID:        len(taskData) + 1,
+				Name:      taskName,
+				Completed: false,
+			}
+			taskData = append(taskData, newTask)
+
+			saveTasks()
+			fmt.Println("✅ Task added successfully!")
+
+		case "2":
 			if len(taskData) == 0 {
-				fmt.Println("No tasks found.")
+				fmt.Println("⚠️  No tasks found.")
+				continue
 			}
 
-			fmt.Println("List of tasks:")
+			fmt.Println("\n📋 List of tasks:")
 			for _, task := range taskData {
-				fmt.Println(task.ID, task.Name, task.Completed)
+				status := "[ ]"
+				if task.Completed {
+					status = "[x]"
+				}
+				fmt.Printf("%s %d: %s\n", status, task.ID, task.Name)
 			}
-			break
-		}
 
-	case "3":
-		{
-			fmt.Println("Enter the task ID to complete:")
+		case "3":
+			fmt.Print("\nEnter the task ID to mark as complete: ")
 			scanner.Scan()
 			taskID, err := strconv.Atoi(scanner.Text())
 			if err != nil {
-				fmt.Println("Invalid task ID. Must be a number.")
+				fmt.Println("❌ Invalid task ID. Must be a number.")
+				continue
 			}
+
+			found := false
 			for i, task := range taskData {
 				if task.ID == taskID {
 					taskData[i].Completed = true
+					saveTasks()
+					fmt.Println("✅ Task marked as complete!")
+					found = true
 					break
-				} else {
-					fmt.Println("Task not found.")
 				}
 			}
-			break
+			if !found {
+				fmt.Println("❌ Task not found.")
+			}
+
+		case "4":
+			fmt.Print("\nEnter the task ID to delete: ")
+			scanner.Scan()
+			taskID, err := strconv.Atoi(scanner.Text())
+			if err != nil {
+				fmt.Println("❌ Invalid task ID. Must be a number.")
+				continue
+			}
+
+			found := false
+			for i, task := range taskData {
+				if task.ID == taskID {
+					taskData = append(taskData[:i], taskData[i+1:]...)
+					saveTasks()
+					fmt.Println("✅ Task deleted successfully.")
+					found = true
+					break
+				}
+			}
+			if !found {
+				fmt.Println("❌ Task not found.")
+			}
+
+		case "5":
+			fmt.Println("👋 Goodbye!")
+			return
+
+		default:
+			fmt.Println("⚠️  Invalid option. Please enter 1–5.")
 		}
-
 	}
+}
 
+// helper function to save tasks to disk
+func saveTasks() {
+	// parse json file
+	fileByte, err := json.MarshalIndent(taskData, "", "  ")
+	if err != nil {
+		fmt.Println("❌ Error writing to file:", err)
+		return
+	}
+	// write to disk
+	err = os.WriteFile("./data/tasks.json", fileByte, 0644)
+	if err != nil {
+		fmt.Println("❌ Error writing to file:", err)
+	}
 }
