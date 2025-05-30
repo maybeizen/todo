@@ -7,16 +7,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"todo/src/models"
+	"todo/src/utils"
 )
 
-// task types
-type Task struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Completed bool   `json:"completed"`
-}
-
-var taskData []Task
+var taskData []models.Task
 
 func main() {
 	fileByte, err := os.ReadFile("./data/tasks.json")
@@ -55,14 +50,14 @@ func main() {
 			scanner.Scan()
 			taskName := strings.TrimSpace(scanner.Text())
 
-			newTask := Task{
+			newTask := models.Task{
 				ID:        len(taskData) + 1,
 				Name:      taskName,
 				Completed: false,
 			}
 			taskData = append(taskData, newTask)
 
-			saveTasks()
+			utils.SaveTasks(taskData)
 			fmt.Println("✅ Task added successfully!")
 
 		case "2":
@@ -93,7 +88,7 @@ func main() {
 			for i, task := range taskData {
 				if task.ID == taskID {
 					taskData[i].Completed = true
-					saveTasks()
+					utils.SaveTasks(taskData)
 					fmt.Println("✅ Task marked as complete!")
 					found = true
 					break
@@ -116,7 +111,7 @@ func main() {
 			for i, task := range taskData {
 				if task.ID == taskID {
 					taskData = append(taskData[:i], taskData[i+1:]...)
-					saveTasks()
+					utils.SaveTasks(taskData)
 					fmt.Println("✅ Task deleted successfully.")
 					found = true
 					break
@@ -133,20 +128,5 @@ func main() {
 		default:
 			fmt.Println("⚠️  Invalid option. Please enter 1–5.")
 		}
-	}
-}
-
-// helper function to save tasks to disk
-func saveTasks() {
-	// parse json file
-	fileByte, err := json.MarshalIndent(taskData, "", "  ")
-	if err != nil {
-		fmt.Println("❌ Error writing to file:", err)
-		return
-	}
-	// write to disk
-	err = os.WriteFile("./data/tasks.json", fileByte, 0644)
-	if err != nil {
-		fmt.Println("❌ Error writing to file:", err)
 	}
 }
